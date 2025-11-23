@@ -1,0 +1,30 @@
+ASG build
+
+1. Open VS Code in a file linked to a git repository, create a new touch file name 0-auth.tf.  Go to https://registry.terraform.io/providers/hashicorp/aws/latest.  Using the use provider drop down on the top right copy the authentication and paste to the auth file. Run Terraform IVPAD Init, Validate, Plan, Apply no need to run destroy yet.
+
+2. Create 1-vpc.tf file using the default vpc documentation copy and paste.  Add cidr block 10.0.0.0/16, set instance tenancy to default. enable DNS hostnames and support setting both values to true. 
+
+3. Create 2-subnet.tf file using the basic usage example copy and paste. Add and choose the AZ's and add map public ip on launch setting value at true for public and false for private.  Copy and paste repeating this process creating your public and private subnets. 
+
+4. Create 3-igw.tf using the example usage on the aws_internet_gateway copy and paste and make sure names are correct.
+
+5. Create 4-nat.tf in the nat_gateway documentation copy and paste the public NAT make sure names are correct.  Create a second resource "aws_eip" "name", give the domain as "vpc", tags used name. Make sure eip name matches allocation ID.
+
+6. Create 5-rtb.tf creating public and private route table using resource aws_route_table specify public or private, add vpc_id.  Add route cidr block "0.0.0.0/0" and gateway ID.  using documentation from aws rout table association copy the one with subnet id not gateway then fill out and repeat for as many subnets that will be used.  Repeat the process for your private subnet just changing gateway ID to nat gateway ID.
+
+7. Create 6-sg.tf copy basic usage from the security group documentation while deleteing the last egress rule since we wont be using IPV6. "Allow HTTP and SSH for web server" is what is used in the description.  First ingress rule will be http cidripv4 will be 0.0.0.0/0 from port 80 with tcp for the protocol with to port  being 80.  Second ingress cidr and protocol stay the same while the to and from port will be 22.  Egress rule has no to or from port and the protocol will be -1.  Load balancer SG copy the resource from the public and change the name the name to reflect purpose, allow http for LB in description ingress and egress will be the same.
+
+8. Create 7-ec2.tf aws instance from the documentation, you'll need the AMI, set the associate public ip address to true and choose t3.micro as instance type.  Security group ids and subnet id create a user_data.sh and use that for the user data.
+
+9. Create 8-output.tf output is "ip_address" with the value being aws_instance.name.public_ip and output "website_url"  value being "http://${aws_instance.latinas.public_dns}"
+
+10. Create 9-launchtemplate.tf from the registry the references needed are name, description, image id, shutdown behavior, instance type, key name, and security group ids as sg-#############.  Tag specification will need resource type, user data = filebase64("${path.module}/user_data.sh").  lifecycle: create before destroy set to true.
+
+11. Create 10-targetgroups.tf copy the example from the ELB target group from the documentation protocol is 80 and add target type set as instance.  Add health check enabled to true and healthy threshold set at 2.
+
+12. Create 11-loadbalancer.tf copy and paste and delete the access log section.  Change deletion protection to false and change the tag to name.  Create another resource "aws_lb_listener" "http" from the redirect action.  Delete the first resource and the redirect.  Add target_group_arn reference under the default action.
+
+13. Create 12-asg.tf copy the latest version of launch template from the registry, delete the LT resource as its not needed.  Change the AZs to vpc zone identifier and add private subnets.  Desired capacity isn't needed but do add the health check type set to ELB, health check grace period set to 300, target group arns and force delete set to true.  Add tags of key set to name, value set to web instance and propagate at launch set to true.  Next create a ASG policy with target tracking scaling from the ASG policy in the registry references needed are name, asg name, estimated instance warmup set to 60 and policy type set to target tracking scaling.  Target tracking configuration and predefined metric specification under the resource reference being predefined metric type set to "ASGAverageCPUUtilization" and target value set to 40.  From documentation choose ASG attachment copy and past example usage with target groups make sure names match.
+
+14. TERRAFORM DESTROY
+ 
